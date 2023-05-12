@@ -9,14 +9,12 @@ import torch.nn.functional as F
 import torch.nn.init as init
 
 device = 'dml'
-result_path = os.getcwd()+'/baboon_upscaled.png'
-img = os.getcwd()+'/baboon.png'
+result_path = f'{os.getcwd()}/baboon_upscaled.png'
+img = f'{os.getcwd()}/baboon.png'
 backend = 'GPU'
 
 def make_layer(block, n_layers):
-    layers = []
-    for _ in range(n_layers):
-        layers.append(block())
+    layers = [block() for _ in range(n_layers)]
     return nn.Sequential(*layers)
 
 class ResidualDenseBlock_5C(nn.Module):
@@ -85,23 +83,16 @@ class RRDBNet(nn.Module):
         if self.sf == 4:
             fea = self.lrelu(self.upconv2(F.interpolate(
                 fea, scale_factor=2, mode='nearest')))
-        out = self.conv_last(self.lrelu(self.HRconv(fea)))
-
-        return out
+        return self.conv_last(self.lrelu(self.HRconv(fea)))
 
 def initialize_weights(net_l, scale=1):
     if not isinstance(net_l, list):
         net_l = [net_l]
     for net in net_l:
         for m in net.modules():
-            if isinstance(m, nn.Conv2d):
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
                 init.kaiming_normal_(m.weight, a=0, mode='fan_in')
                 m.weight.data *= scale  # for residual block
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                init.kaiming_normal_(m.weight, a=0, mode='fan_in')
-                m.weight.data *= scale
                 if m.bias is not None:
                     m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
